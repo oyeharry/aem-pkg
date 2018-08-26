@@ -146,7 +146,7 @@ const aemPkgSync = {
 		}
 		body.append('name', filename);
 		body.append('force', 'true');
-		body.append('install', installPkg);
+		body.append('install', installPkg ? 'true' : 'false');
 
 		const pkgUploadUrl = `${serverPath}${pkgMgrService}.jsp`;
 		await got.post(pkgUploadUrl, {
