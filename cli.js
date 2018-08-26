@@ -6,7 +6,7 @@ const aemPkgSync = require('.');
 const cli = meow(
 	`
 	Usage
-	  $ cpy <source>... <destination>
+	  $ cpy <command>
 	Options
 	  --no-overwrite       Don't overwrite the destination
 	  --parents            Preserve path structure
@@ -40,10 +40,21 @@ const cli = meow(
 	}
 );
 
-// aemPkgSync.pull().then(() => {
-// 	// console.log('whoa');
-// });
+const log = console.log.bind(console); //eslint-disable-line
 
-aemPkgSync.push().then(() => {
-	// console.log('whoa');
-});
+if (cli.input.length) {
+	const cmd = cli.input[0];
+	switch (cmd) {
+		case 'pull':
+			aemPkgSync.pull();
+			break;
+		case 'push':
+			aemPkgSync.push();
+			break;
+		default:
+			log('Invalid Command');
+			break;
+	}
+} else {
+	log('No comand');
+}

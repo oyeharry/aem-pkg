@@ -8,6 +8,7 @@ const pify = require('pify');
 const makeDir = require('make-dir');
 const pathExists = require('path-exists');
 const FormData = require('form-data');
+const globby = require('globby');
 
 const xml2jsAsync = pify(xml2js);
 const fsAsync = pify(fs);
@@ -23,47 +24,40 @@ const defaultOptions = {
 	jcrRootDir: 'jcr_root',
 	pkgMgrService: '/crx/packmgr/service',
 	username: 'admin',
-	password: 'admin'
+	password: 'admin',
+	installPkg: true
 };
 
 const aemPkgSync = {
-	async getOptions(opt) {
+	async getPkgNameFromMeta(pkgPropFile) {
+		let pkgPropsXml;
+		try {
+			pkgPropsXml = await fsAsync.readFile(path.resolve(pkgPropFile), 'utf-8');
+		} catch (err) {
+			let errMsg;
+			if (err.code === 'ENOENT') {
+				errMsg = `Invalid package directory. Could not find the package properties on path ${
+					err.path
+				}`;
+			} else {
+				errMsg = err;
+			}
+			throw new Error(errMsg);
+		}
+		const pkgProps = await xml2jsAsync.parseString(pkgPropsXml);
+
+		const filteredNameNode = pkgProps.properties.entry.filter(
+			entry => entry.$.key === 'name'
+		);
+
+		return filteredNameNode[0]._;
+	},
+	getOptions(opt) {
 		const options = Object.assign({}, defaultOptions, opt);
-		const {
-			host,
-			port,
-			protocol,
-			pkgPropFile,
-			packageName,
-			username,
-			password
-		} = options;
+		const { host, port, protocol, username, password } = options;
 
 		options.serverPath = `${protocol}://${host}:${port}`;
 		options.auth = `${username}:${password}`;
-
-		if (!packageName) {
-			let pkgPropsXml;
-			try {
-				pkgPropsXml = await fsAsync.readFile(
-					path.resolve(pkgPropFile),
-					'utf-8'
-				);
-			} catch (err) {
-				throw new Error(
-					`Invalid package directory. Could not find the package properties on path ${
-						err.path
-					}`
-				);
-			}
-			const pkgProps = await xml2jsAsync.parseString(pkgPropsXml);
-
-			const filteredNameNode = pkgProps.properties.entry.filter(
-				entry => entry.$.key === 'name'
-			);
-			options.packageName = filteredNameNode[0]._;
-		}
-
 		return options;
 	},
 	async pull(opt) {
@@ -73,9 +67,10 @@ const aemPkgSync = {
 			jcrRootDir,
 			pkgMgrService,
 			serverPath,
-			packageName,
-			auth
-		} = await this.getOptions(opt);
+			auth,
+			pkgPropFile
+		} = this.getOptions(opt);
+		const packageName = await this.getPkgNameFromMeta(pkgPropFile);
 
 		const packagePath = `${packagesPath}/${packageName}/${packageName}.zip`;
 		const serverPackageFileUrl = `${serverPath}${packagePath}`;
@@ -124,37 +119,40 @@ const aemPkgSync = {
 	},
 
 	async push(opt) {
-		const {
-			pkgMgrService,
-			serverPath,
-			packageName,
-			auth
-		} = await this.getOptions(opt);
+		const { pkgPropFile } = this.getOptions(opt);
+		const packageName = await this.getPkgNameFromMeta(pkgPropFile);
 
 		log('Zipping files...', path.resolve('.'));
 		const zip = new AdmZip();
 		zip.addLocalFolder(path.resolve('.'));
-
 		const zipBuffer = await zip.toBuffer();
 
-		const body = new FormData();
+		log('Uploading package...');
 		const filename = `${packageName}.zip`;
-		body.append('file', zipBuffer, { filename });
+		await this.uploadPkg(filename, zipBuffer, opt);
+		log('Done!');
+	},
+
+	async uploadPkg(filename, pkg, opt) {
+		const { pkgMgrService, serverPath, auth, installPkg } = this.getOptions(
+			opt
+		);
+
+		const body = new FormData();
+		if (typeof pkg === 'string') {
+			body.append('file', fs.createReadStream(path.resolve(pkg)));
+		} else {
+			body.append('file', pkg, { filename });
+		}
 		body.append('name', filename);
 		body.append('force', 'true');
-		body.append('install', 'true');
+		body.append('install', installPkg);
 
-		log('Uploading package...');
 		const pkgUploadUrl = `${serverPath}${pkgMgrService}.jsp`;
-		log(pkgUploadUrl);
-		await got
-			.post(pkgUploadUrl, {
-				auth,
-				body
-			})
-			.then(res => log(res.body));
-
-		log('done');
+		await got.post(pkgUploadUrl, {
+			auth,
+			body
+		});
 	}
 };
 
