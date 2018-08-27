@@ -25,7 +25,9 @@ const defaultOptions = {
 	pkgMgrService: '/crx/packmgr/service',
 	username: 'admin',
 	password: 'admin',
-	installPkg: true
+	installPkg: true,
+	pkgFilePattern: '*.zip',
+	cwd: process.cwd()
 };
 
 const aemPkgSync = {
@@ -52,43 +54,49 @@ const aemPkgSync = {
 
 		return filteredNameNode[0]._;
 	},
-	getOptions(opt) {
-		const options = Object.assign({}, defaultOptions, opt);
+
+	getOptions(opts) {
+		const options = Object.assign({}, defaultOptions, opts);
 		const { host, port, protocol, username, password } = options;
 
 		options.serverPath = `${protocol}://${host}:${port}`;
 		options.auth = `${username}:${password}`;
 		return options;
 	},
-	async pull(opt) {
-		const {
-			packagesPath,
-			extractMetaDir,
-			jcrRootDir,
-			pkgMgrService,
-			serverPath,
-			auth,
-			pkgPropFile
-		} = this.getOptions(opt);
-		const packageName = await this.getPkgNameFromMeta(pkgPropFile);
+
+	async buildServerPkg(packageName, opts) {
+		const { packagesPath, pkgMgrService, serverPath, auth } = this.getOptions(
+			opts
+		);
 
 		const packagePath = `${packagesPath}/${packageName}/${packageName}.zip`;
-		const serverPackageFileUrl = `${serverPath}${packagePath}`;
-		const pkgRebuildUrl = `${serverPath}${pkgMgrService}/.json${packagePath}?cmd=build`;
+		const pkgBuildUrl = `${serverPath}${pkgMgrService}/.json${packagePath}?cmd=build`;
 
-		log('Building package...');
-		await got.post(pkgRebuildUrl, {
+		const buildPkg = await got.post(pkgBuildUrl, {
 			auth
 		});
 
-		log('Downloading package...');
+		return buildPkg;
+	},
+
+	getDownloadPkgStream(packageName, opts) {
+		const { packagesPath, serverPath, auth } = this.getOptions(opts);
+
+		const packagePath = `${packagesPath}/${packageName}/${packageName}.zip`;
+		const serverPackageFileUrl = `${serverPath}${packagePath}`;
+
 		const fileStream = got.stream(serverPackageFileUrl, {
 			auth
 		});
 
-		log('Extracting package...');
-		const zipBuffer = await getStream.buffer(fileStream);
-		const zip = new AdmZip(zipBuffer);
+		return fileStream;
+	},
+
+	async extractZip(zipFile, extractPath, opts) {
+		const { extractMetaDir, jcrRootDir } = this.getOptions(opts);
+		const zipExtractPath = extractPath || './';
+
+		const zip = new AdmZip(zipFile);
 		const zipEntries = zip.getEntries();
 		const extractFiles = zipEntries.filter(
 			({ entryName }) =>
@@ -109,38 +117,55 @@ const aemPkgSync = {
 			.filter(({ entryName }) => !/\/$/.test(entryName))
 			.map(({ entryName }) => {
 				return fsAsync.writeFile(
-					path.resolve(entryName),
+					path.resolve(path.join(zipExtractPath, entryName)),
 					zip.readFile(entryName)
 				);
 			});
 
 		await Promise.all(createFiles);
+	},
+
+	async pull(opts) {
+		const { pkgPropFile, cwd } = this.getOptions(opts);
+		const packageName = await this.getPkgNameFromMeta(pkgPropFile);
+
+		log('Building package...');
+		await this.buildServerPkg(packageName, opts);
+
+		log('Downloading package...');
+		const fileStream = this.getDownloadPkgStream(packageName, opts);
+
+		log('Extracting package...');
+		const zipBuffer = await getStream.buffer(fileStream);
+		await this.extractZip(zipBuffer, cwd, opts);
+
 		log('Done!');
 	},
 
-	async push(opt) {
-		const { pkgPropFile } = this.getOptions(opt);
+	async push(opts) {
+		const { pkgPropFile, cwd } = this.getOptions(opts);
 		const packageName = await this.getPkgNameFromMeta(pkgPropFile);
 
-		log('Zipping files...', path.resolve('.'));
+		log('Zipping files...', process.cwd());
 		const zip = new AdmZip();
-		zip.addLocalFolder(path.resolve('.'));
+		zip.addLocalFolder(cwd);
 		const zipBuffer = await zip.toBuffer();
 
 		log('Uploading package...');
 		const filename = `${packageName}.zip`;
-		await this.uploadPkg(filename, zipBuffer, opt);
+		await this.uploadPkg(filename, zipBuffer, opts);
 		log('Done!');
 	},
 
-	async uploadPkg(filename, pkg, opt) {
+	async uploadPkg(filename, pkg, opts) {
 		const { pkgMgrService, serverPath, auth, installPkg } = this.getOptions(
-			opt
+			opts
 		);
 
 		const body = new FormData();
 		if (typeof pkg === 'string') {
-			body.append('file', fs.createReadStream(path.resolve(pkg)));
+			const pkgPath = path.join(pkg, filename);
+			body.append('file', fs.createReadStream(path.resolve(pkgPath)));
 		} else {
 			body.append('file', pkg, { filename });
 		}
@@ -148,11 +173,25 @@ const aemPkgSync = {
 		body.append('force', 'true');
 		body.append('install', installPkg ? 'true' : 'false');
 
+		log(`Uploading: ${filename}`);
 		const pkgUploadUrl = `${serverPath}${pkgMgrService}.jsp`;
 		await got.post(pkgUploadUrl, {
 			auth,
 			body
 		});
+		log('Done!');
+	},
+
+	async uploadPkgs(pkgsDirectory, opts) {
+		const options = this.getOptions(opts);
+		const cwd = path.resolve(pkgsDirectory || options.cwd);
+		const pkgs = await globby(options.pkgFilePattern, {
+			cwd
+		});
+
+		await pkgs.reduce((pkgsUpload, pkg) => {
+			return pkgsUpload.then(() => this.uploadPkg(pkg, cwd, opts));
+		}, Promise.resolve());
 	}
 };
 
