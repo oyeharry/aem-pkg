@@ -7,35 +7,21 @@ const aemPkgSync = require('.');
 const cli = meow(
 	`
 	Usage
-	  $ cpy <command>
+	  $ aem-pkg <command>
 	Options
-	  --no-overwrite       Don't overwrite the destination
-	  --parents            Preserve path structure
 	  --cwd=<dir>          Working directory for files
-	  --rename=<filename>  Rename all <source> filenames to <filename>
 	<source> can contain globs if quoted
 	Examples
-	  Copy all .png files in src folder into dist except src/goat.png
-	  $ cpy 'src/*.png' '!src/goat.png' dist
-	  Copy all .html files inside src folder into dist and preserve path structure
-	  $ cpy '**/*.html' '../dist/' --cwd=src --parents
+	  Upload all packages from current directory
+		$ aem-pkg up
+		Upload 'sample-aem-pacakge.zip' package from current directory
+	  $ aem-pkg up sample-aem-pacakge.zip
 `,
 	{
 		flags: {
-			overwrite: {
-				type: 'boolean',
-				default: true
-			},
-			parents: {
-				type: 'boolean',
-				default: false
-			},
 			cwd: {
 				type: 'string',
 				default: process.cwd()
-			},
-			rename: {
-				type: 'string'
 			}
 		}
 	}
