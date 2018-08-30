@@ -93,28 +93,29 @@ const log = console.log.bind(console); //eslint-disable-line
 
 if (cli.input.length) {
 	const cmd = cli.input[0];
+	const opts = cli.flags;
 	let pkgName;
 	switch (cmd) {
 		case 'clone':
 			pkgName = cli.input[1];
 			if (pkgName) {
-				aemPkgSync.clone(pkgName);
+				aemPkgSync.clone(pkgName, opts);
 			} else {
 				log('Package name required. $ aem-pkg --help');
 			}
 			break;
 		case 'pull':
-			aemPkgSync.pull();
+			aemPkgSync.pull(opts);
 			break;
 		case 'push':
-			aemPkgSync.push();
+			aemPkgSync.push(opts);
 			break;
 		case 'up':
 			pkgName = cli.input[1];
 			if (pkgName) {
-				aemPkgSync.uploadPkg(pkgName, path.resolve('./'));
+				aemPkgSync.uploadPkg(pkgName, path.resolve('./'), opts);
 			} else {
-				aemPkgSync.uploadPkgs(path.resolve('./'));
+				aemPkgSync.uploadPkgs(path.resolve('./'), opts);
 			}
 			break;
 		default:
