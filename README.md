@@ -24,20 +24,19 @@ $ aem-pkg --help
   Usage
     $ aem-pkg <command>
   Options
-  	--cwd=<dir>         Working directory for files
-  	--protocol          Protocol for package manager service
-  	--host              Host for package manager service
-  	--port              Port number for package manager service
-  	--extractMetaDir    Flag, whether you want to extract meta directory during push and pull.
-  	--pkgPropFile       Path to package meta properties.xml file
-  	--jcrRootDir        Name of JCR root directory
-  	--pkgService        Path of package manager service
-  	--username          Username for package manager service authentication
-  	--password          Password for package manager service authentication
-  	--installPkg        Flag, whether you want uploaded package installation
-  	--pkgFilePattern    Package zip file search pattern
-  	--cwd               Current working directory for operation
-  <source> can contain globs if quoted
+  	--protocol=<protocol>      Protocol for package manager service
+  	--host=<host>              Host for package manager service
+  	--port=<port>              Port number for package manager service
+  	--extractMetaDir=<extractMetaDir>    Flag, whether you want to extract meta directory during push and pull.
+  	--pkgPropFile=<pkgPropFile>       Path to package meta properties.xml file
+  	--jcrRootDir =<jcrRootDir>       Name of JCR root directory
+  	--pkgService=<pkgService>        Path of package manager service
+  	--username=<username>          Username for package manager service authentication
+  	--password=<password>          Password for package manager service authentication
+  	--installPkg=<installPkg>        Flag, whether you want uploaded package installation
+  	--pkgFilePattern=<pkgFilePattern>    Package zip file search pattern
+  	--cwd=<dir>               Current working directory for operation
+
   Examples
       Clone 'my-aem-package' from remote server for development.
       $ aem-pkg clone my-aem-package
