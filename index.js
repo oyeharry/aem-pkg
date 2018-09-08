@@ -15,6 +15,22 @@ const xml2jsAsync = pify(xml2js);
 const fsAsync = pify(fs);
 
 const log = console.log.bind(console); //eslint-disable-line
+
+/**
+ * @typedef {Object} Options
+ * @property {String} [protocol="http"]  Protocol for package manager service
+ * @property {String} [host="localhost"] Host for package manager service
+ * @property {Number} [port=4502] Port number for package manager service
+ * @property {Boolean} [extractMetaDir=false] Flag to extract meta directory during push and pull.
+ * @property {String} [pkgPropFile="./META-INF/vault/properties.xml"] Path to package meta properties.xml file
+ * @property {String} [jcrRootDir="jcr_root"] Name of JCR root directory
+ * @property {String} [pkgService="/crx/packmgr/service.jsp"] Path of package manager service
+ * @property {String} [username="admin"] Username for package manager service authentication
+ * @property {String} [password="admin"] Password for package manager service authentication
+ * @property {Boolean} [installPkg=true] Flag, whether you want uploaded package installation
+ * @property {String} [pkgFilePattern="*.zip"] Package zip file search pattern
+ * @property {String} [cwd=process.cwd()] Current working directory for operation
+ */
 const defaultOptions = {
 	protocol: 'http',
 	host: 'localhost',
@@ -30,10 +46,14 @@ const defaultOptions = {
 	cwd: process.cwd()
 };
 
-const aemPkgSync = {
+/**
+ * @namespace
+ */
+const aemPkg = {
 	/**
-	 *
+	 * @private
 	 * @param {String} pkgPropFile Path for AEM package properties.xml file
+	 * @returns {Promise}
 	 */
 	async getPkgNameFromMeta(pkgPropFile) {
 		let pkgPropsXml;
@@ -58,8 +78,9 @@ const aemPkgSync = {
 	},
 
 	/**
-	 *
+	 * @private
 	 * @param {Object} opts Options to override default options
+	 * @returns {Promise}
 	 */
 	getOptions(opts) {
 		const options = Object.assign({}, defaultOptions, opts);
@@ -73,7 +94,8 @@ const aemPkgSync = {
 	/**
 	 *
 	 * @param {String} pkgName Name of the package to build without extension
-	 * @param {Object} opts Options to override default options
+	 * @param {Object} [opts=defaultOptions] Options to override default options
+	 * @returns {Promise}
 	 */
 	async buildRemotePkg(pkgName, opts) {
 		const { pkgServiceUrl, auth } = this.getOptions(opts);
@@ -87,9 +109,10 @@ const aemPkgSync = {
 	},
 
 	/**
-	 *
+	 * @private
 	 * @param {String} packageName Name of the package without extension
-	 * @param {Object} opts Options to override default options
+	 * @param {Object} [opts=defaultOptions] Options to override default options
+	 * @returns {Promise}
 	 */
 	getRemotePkgStream(packageName, opts) {
 		const { pkgServiceUrl, auth } = this.getOptions(opts);
@@ -103,9 +126,10 @@ const aemPkgSync = {
 	},
 
 	/**
-	 *
+	 * @private
 	 * @param {String} pkgName Name of the package without extension
-	 * @param {Object} opts Options to override default options
+	 * @param {Object} [opts=defaultOptions] Options to override default options
+	 * @returns {Promise}
 	 */
 	async getRemotePkgBuffer(pkgName, opts) {
 		await this.buildRemotePkg(pkgName, opts);
@@ -115,10 +139,11 @@ const aemPkgSync = {
 	},
 
 	/**
-	 *
+	 * @private
 	 * @param {String} zipFile Path of the zip file to extract
 	 * @param {String} extractPath Location path to extract the file
-	 * @param {Object} opts Options to override default options
+	 * @param {Object} [opts=defaultOptions] Options to override default options
+	 * @returns {Promise}
 	 */
 	async extractZip(zipFile, extractPath, opts) {
 		const { extractMetaDir, jcrRootDir } = this.getOptions(opts);
@@ -156,7 +181,8 @@ const aemPkgSync = {
 
 	/**
 	 *
-	 * @param {Object} opts Options to override default options
+	 * @param {Object} [opts=defaultOptions] Options to override default options
+	 * @returns {Promise}
 	 */
 	async pull(opts) {
 		const { pkgPropFile, cwd } = this.getOptions(opts);
@@ -170,7 +196,8 @@ const aemPkgSync = {
 
 	/**
 	 *
-	 * @param {Object} opts Options to override default options
+	 * @param {Object} [opts=defaultOptions] Options to override default options
+	 * @returns {Promise}
 	 */
 	async push(opts) {
 		const { pkgPropFile, cwd } = this.getOptions(opts);
@@ -187,7 +214,8 @@ const aemPkgSync = {
 	/**
 	 *
 	 * @param {String} pkgName Name of the package without extension
-	 * @param {Object} opts Options to override default options
+	 * @param {Object} [opts=defaultOptions] Options to override default options
+	 * @returns {Promise}
 	 */
 	async clone(pkgName, opts) {
 		const options = this.getOptions(opts);
@@ -208,8 +236,9 @@ const aemPkgSync = {
 
 	/**
 	 *
-	 * @param {String | Object} file path or object with buffer and filename properties
-	 * @param {Object} opts Options to override default options
+	 * @param {(String|Object)} file path or object with buffer and filename properties
+	 * @param {Object} [opts=defaultOptions] Options to override default options
+	 * @returns {Promise}
 	 */
 	async uploadPkg(file, opts) {
 		const { pkgServiceUrl, auth, installPkg } = this.getOptions(opts);
@@ -235,7 +264,8 @@ const aemPkgSync = {
 	/**
 	 *
 	 * @param {Array} pkgs array of package file paths
-	 * @param {Object} opts Options to override default options
+	 * @param {Object} [opts=defaultOptions] Options to override default options
+	 * @returns {Promise}
 	 */
 	async uploadPkgs(pkgs, opts) {
 		const options = this.getOptions(opts);
@@ -249,7 +279,8 @@ const aemPkgSync = {
 	/**
 	 *
 	 * @param {String} pkgsDir Directory of all package zip
-	 * @param {Object} opts Options to override default options
+	 * @param {Object} [opts=defaultOptions] Options to override default options
+	 * @returns {Promise}
 	 */
 	async uploadPkgsFromDir(pkgsDir, opts) {
 		const options = this.getOptions(opts);
@@ -268,7 +299,8 @@ const aemPkgSync = {
 	/**
 	 *
 	 * @param {String} zipFile Path of zip file which contains many packages. All will be uploaded individually.
-	 * @param {Object} opts Options to override default options
+	 * @param {Object} [opts=defaultOptions] Options to override default options
+	 * @returns {Promise}
 	 */
 	async uploadPkgsFromZip(zipFile, opts) {
 		const options = this.getOptions(opts);
@@ -298,7 +330,8 @@ const aemPkgSync = {
 	/**
 	 *
 	 * @param {String} zipUrl URL of zip file which contain AEM packages
-	 * @param {Object} opts Options to override default options
+	 * @param {Object} [opts=defaultOptions] Options to override default options
+	 * @returns {Promise}
 	 */
 	async uploadPkgsFromZipUrl(zipUrl, opts) {
 		const options = this.getOptions(opts);
@@ -322,4 +355,4 @@ const aemPkgSync = {
 	}
 };
 
-module.exports = exports = aemPkgSync;
+module.exports = exports = aemPkg;

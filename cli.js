@@ -10,7 +10,6 @@ const cli = meow(
 	Usage
 	  $ aem-pkg <command>
 	Options
-		--cwd=<dir>         Working directory for files
 		--protocol          Protocol for package manager service
 		--host              Host for package manager service
 		--port              Port number for package manager service
