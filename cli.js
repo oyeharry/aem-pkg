@@ -2,7 +2,8 @@
 
 const path = require('path');
 const meow = require('meow');
-const aemPkgSync = require('.');
+const aemPkg = require('.');
+const isUrl = require('is-url');
 
 const cli = meow(
 	`
@@ -33,7 +34,11 @@ const cli = meow(
 	  Upload all packages from current directory
 		$ aem-pkg up
 		Upload 'my-aem-pacakge.zip' package from current directory
-	  $ aem-pkg up my-aem-pacakge.zip
+		$ aem-pkg up my-aem-pacakge.zip
+		Extract and upload packages from 'pacakges-zip-file.zip' file. This file should have aem packages.
+		$ aem-pkg upzip pacakges-zip-file.zip
+		Download, extract and upload packages from URL 'https://www.mypackages.com/pacakges-zip-file.zip' file. This file should have aem packages.
+	  $ aem-pkg upzip https://www.mypackages.com/pacakges-zip-file.zip
 `,
 	{
 		flags: {
@@ -94,34 +99,52 @@ const log = console.log.bind(console); //eslint-disable-line
 if (cli.input.length) {
 	const cmd = cli.input[0];
 	const opts = cli.flags;
-	let pkgName;
+	let pkgSrc;
+	let curAemPkg;
+
 	switch (cmd) {
 		case 'clone':
-			pkgName = cli.input[1];
-			if (pkgName) {
-				aemPkgSync.clone(pkgName, opts);
+			pkgSrc = cli.input[1];
+			if (pkgSrc) {
+				curAemPkg = aemPkg.clone(pkgSrc, opts);
 			} else {
 				log('Package name required. $ aem-pkg --help');
 			}
 			break;
 		case 'pull':
-			aemPkgSync.pull(opts);
+			curAemPkg = aemPkg.pull(opts);
 			break;
 		case 'push':
-			aemPkgSync.push(opts);
+			curAemPkg = aemPkg.push(opts);
 			break;
 		case 'up':
-			pkgName = cli.input[1];
-			if (pkgName) {
-				aemPkgSync.uploadPkg(pkgName, path.resolve('./'), opts);
+			pkgSrc = cli.input[1];
+			if (pkgSrc) {
+				curAemPkg = aemPkg.uploadPkg(pkgSrc, opts);
 			} else {
-				aemPkgSync.uploadPkgs(path.resolve('./'), opts);
+				curAemPkg = aemPkg.uploadPkgsFromDir(opts.cwd, opts);
+			}
+			break;
+		case 'upzip':
+			pkgSrc = cli.input[1];
+			if (pkgSrc) {
+				if (isUrl(pkgSrc)) {
+					curAemPkg = aemPkg.uploadPkgsFromZipUrl(pkgSrc);
+				} else {
+					curAemPkg = aemPkg.uploadPkgsFromZip(pkgSrc);
+				}
+			} else {
+				log('Packages zip file name or url is required. $ aem-pkg --help');
 			}
 			break;
 		default:
 			log('Invalid Command');
 			break;
 	}
+
+	if (curAemPkg) {
+		curAemPkg.catch(e => log(e));
+	}
 } else {
-	log('No comand');
+	log('No command. $ aem-pkg --help');
 }
