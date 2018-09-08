@@ -258,6 +258,10 @@ const aemPkgSync = {
 			cwd
 		});
 
+		if (!pkgs.length) {
+			throw new Error(`Nothing found on ${cwd}`);
+		}
+
 		await this.uploadPkgs(pkgs, { ...options, cwd });
 	},
 
