@@ -199,7 +199,7 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 ##### Examples
 
 ```javascript
-// Upload packages from zip file which contain many AEM packages
+// Upload packages from zip file which contains many AEM packages
 await aemPkg.uploadPkgsFromZip('./aem-pkgs/my-aem-pkgs.zip');
 ```
 
@@ -209,7 +209,7 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 ##### Parameters
 
--   `zipUrl` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** URL of zip file which contain AEM packages
+-   `zipUrl` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** URL of zip file which contains AEM packages
 -   `opts` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Options to override default options (optional, default `defaultOptions`)
 
 ##### Examples

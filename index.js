@@ -215,11 +215,11 @@ const aemPkg = {
 		log('Packaging...');
 		const zip = new AdmZip();
 		zip.addLocalFolder(pkgSrc);
-		const zipBuffer = await zip.toBuffer();
+		const buffer = await zip.toBuffer();
 
 		log('Uploading...');
-		const filename = `${packageName}.zip`;
-		await this.uploadPkg(filename, zipBuffer, opts);
+		const name = `${packageName}.zip`;
+		await this.uploadPkg({buffer, name}, opts);
 	},
 
 	/**
@@ -326,7 +326,7 @@ const aemPkg = {
 	 * @param {Object} [opts=defaultOptions] Options to override default options
 	 * @returns {Promise}
 	 * @example
-	 * // Upload packages from zip file which contain many AEM packages
+	 * // Upload packages from zip file which contains many AEM packages
 	 * await aemPkg.uploadPkgsFromZip('./aem-pkgs/my-aem-pkgs.zip');
 	 */
 	async uploadPkgsFromZip(zipFile, opts) {
@@ -356,7 +356,7 @@ const aemPkg = {
 
 	/**
 	 *
-	 * @param {String} zipUrl URL of zip file which contain AEM packages
+	 * @param {String} zipUrl URL of zip file which contains AEM packages
 	 * @param {Object} [opts=defaultOptions] Options to override default options
 	 * @returns {Promise}
 	 * @example
