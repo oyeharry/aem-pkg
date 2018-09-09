@@ -1,6 +1,5 @@
 #!/usr/bin/env node
 
-const path = require('path');
 const meow = require('meow');
 const aemPkg = require('.');
 const isUrl = require('is-url');
