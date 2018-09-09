@@ -105,16 +105,16 @@ if (cli.input.length) {
 		case 'clone':
 			pkgSrc = cli.input[1];
 			if (pkgSrc) {
-				curAemPkg = aemPkg.clone(pkgSrc, opts);
+				curAemPkg = aemPkg.clone(pkgSrc, './', opts);
 			} else {
 				log('Package name required. $ aem-pkg --help');
 			}
 			break;
 		case 'pull':
-			curAemPkg = aemPkg.pull(opts);
+			curAemPkg = aemPkg.pull('./', opts);
 			break;
 		case 'push':
-			curAemPkg = aemPkg.push(opts);
+			curAemPkg = aemPkg.push('./', opts);
 			break;
 		case 'up':
 			pkgSrc = cli.input[1];

@@ -88,13 +88,26 @@ Type: [Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Globa
 -   `pkgName` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Name of the package to build without extension
 -   `opts` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Options to override default options (optional, default `defaultOptions`)
 
+##### Examples
+
+```javascript
+await aemPkg.buildRemotePkg('my-awesome-aem-website');
+```
+
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** 
 
 #### pull
 
 ##### Parameters
 
+-   `src` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Path of the package directory where need to pull the package.
 -   `opts` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Options to override default options (optional, default `defaultOptions`)
+
+##### Examples
+
+```javascript
+await aemPkg.pull('./my-aem-pkg-dir/my-aem-website');
+```
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** 
 
@@ -102,7 +115,14 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 ##### Parameters
 
+-   `src` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Path of the package directory which you need to push to the server.
 -   `opts` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Options to override default options (optional, default `defaultOptions`)
+
+##### Examples
+
+```javascript
+await aemPkg.push('./my-aem-pkg-dir/my-aem-website');
+```
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** 
 
@@ -111,7 +131,14 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 ##### Parameters
 
 -   `pkgName` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Name of the package without extension
+-   `cloneDirPath` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Path of directory to clone the package
 -   `opts` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Options to override default options (optional, default `defaultOptions`)
+
+##### Examples
+
+```javascript
+await aemPkg.clone('my-aem-website', './my-aem-pkg-dir/');
+```
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** 
 
@@ -122,6 +149,13 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 -   `file` **([String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String) \| [Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object))** path or object with buffer and filename properties
 -   `opts` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Options to override default options (optional, default `defaultOptions`)
 
+##### Examples
+
+```javascript
+await aemPkg.uploadPkg('./my-aem-pkgs/my-website.zip');
+await aemPkg.uploadPkg({buffer:zipFileBuffer, name:'my-website'});
+```
+
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** 
 
 #### uploadPkgs
@@ -130,6 +164,12 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 -   `pkgs` **[Array](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Array)** array of package file paths
 -   `opts` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Options to override default options (optional, default `defaultOptions`)
+
+##### Examples
+
+```javascript
+await aemPkg.uploadPkgs(['./my-aem-pkgs/my-first-website.zip', './my-aem-pkgs/my-second-website.zip']);
+```
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** 
 
@@ -140,6 +180,13 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 -   `pkgsDir` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Directory of all package zip
 -   `opts` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Options to override default options (optional, default `defaultOptions`)
 
+##### Examples
+
+```javascript
+// Upload all packages from this directory
+await aemPkg.uploadPkgsFromDir('./my-aem-pkgs/');
+```
+
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** 
 
 #### uploadPkgsFromZip
@@ -149,6 +196,13 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 -   `zipFile` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** Path of zip file which contains many packages. All will be uploaded individually.
 -   `opts` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Options to override default options (optional, default `defaultOptions`)
 
+##### Examples
+
+```javascript
+// Upload packages from zip file which contain many AEM packages
+await aemPkg.uploadPkgsFromZip('./aem-pkgs/my-aem-pkgs.zip');
+```
+
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** 
 
 #### uploadPkgsFromZipUrl
@@ -157,6 +211,13 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 -   `zipUrl` **[String](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/String)** URL of zip file which contain AEM packages
 -   `opts` **[Object](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Object)** Options to override default options (optional, default `defaultOptions`)
+
+##### Examples
+
+```javascript
+// Upload packages from zip file URL which contain many AEM packages
+await aemPkg.uploadPkgsFromZip('https://www.example.com/packages/my-aem-pkgs.zip');
+```
 
 Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/Global_Objects/Promise)** 
 

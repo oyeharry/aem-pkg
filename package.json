@@ -1,6 +1,6 @@
 {
     "name": "aem-pkg",
-    "version": "0.0.0-beta.5",
+    "version": "0.0.0-beta.6",
     "description": "Sometimes you just need to push, pull and sync AEM package from local file system to AEM server.",
     "main": "index.js",
     "bin": {
