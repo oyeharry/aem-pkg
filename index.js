@@ -17,19 +17,19 @@ const fsAsync = pify(fs);
 const log = console.log.bind(console); //eslint-disable-line
 
 /**
- * @typedef {Object} Options
- * @property {String} [protocol="http"]  Protocol for package manager service
- * @property {String} [host="localhost"] Host for package manager service
- * @property {Number} [port=4502] Port number for package manager service
- * @property {Boolean} [extractMetaDir=false] Flag to extract meta directory during push and pull.
- * @property {String} [pkgPropFile="./META-INF/vault/properties.xml"] Path to package meta properties.xml file
- * @property {String} [jcrRootDir="jcr_root"] Name of JCR root directory
- * @property {String} [pkgService="/crx/packmgr/service.jsp"] Path of package manager service
- * @property {String} [username="admin"] Username for package manager service authentication
- * @property {String} [password="admin"] Password for package manager service authentication
- * @property {Boolean} [installPkg=true] Flag, whether you want uploaded package installation
- * @property {String} [pkgFilePattern="*.zip"] Package zip file search pattern
- * @property {String} [cwd=process.cwd()] Current working directory for operation
+ * @typedef {Object}
+ * @property {String} [protocol="http"]  Protocol for package manager service. (optional, default `http`)
+ * @property {String} [host="localhost"] Host for package manager service. (optional, default `localhost`)
+ * @property {Number} [port=4502] Port number for package manager service. (optional, default `4502`)
+ * @property {Boolean} [extractMetaDir=false] Flag to extract meta directory during push and pull.. (optional, default `false`)
+ * @property {String} [pkgPropFile="./META-INF/vault/properties.xml"] Path to package meta . properties.xml file (optional, default `./META-INF/vault/properties.xml`)
+ * @property {String} [jcrRootDir="jcr_root"] Name of JCR root directory. (optional, default `jcr_root`)
+ * @property {String} [pkgService="/crx/packmgr/service.jsp"] Path of package manager service. (optional, default `/crx/packmgr/service.jsp`)
+ * @property {String} [username="admin"] Username for package manager service authentication. (optional, default `admin`)
+ * @property {String} [password="admin"] Password for package manager service authentication. (optional, default `admin`)
+ * @property {Boolean} [installPkg=true] Flag, whether you want uploaded package installation. (optional, default `true`)
+ * @property {String} [pkgFilePattern="*.zip"] Package zip file search pattern. (optional, default `*.zip`)
+ * @property {String} [cwd=process.cwd()] Current working directory for operation. (optional, default `process.cwd()`)
  */
 const defaultOptions = {
 	protocol: 'http',
