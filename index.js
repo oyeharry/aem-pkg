@@ -10,6 +10,8 @@ const pathExists = require('path-exists');
 const FormData = require('form-data');
 const globby = require('globby');
 const tmpPromise = require('tmp-promise');
+const prettyBytes = require('pretty-bytes');
+const logUpdate = require('log-update');
 
 const xml2jsAsync = pify(xml2js);
 const fsAsync = pify(fs);
@@ -32,357 +34,387 @@ const log = console.log.bind(console); //eslint-disable-line
  * @property {String} [cwd=process.cwd()] Current working directory for operation. (optional, default `process.cwd()`)
  */
 const defaultOptions = {
-	protocol: 'http',
-	host: 'localhost',
-	port: 4502,
-	extractMetaDir: false,
-	pkgPropFile: './META-INF/vault/properties.xml',
-	jcrRootDir: 'jcr_root',
-	pkgService: '/crx/packmgr/service.jsp',
-	username: 'admin',
-	password: 'admin',
-	installPkg: true,
-	pkgFilePattern: '*.zip',
-	cwd: process.cwd()
+  protocol: 'http',
+  host: 'localhost',
+  port: 4502,
+  extractMetaDir: false,
+  pkgPropFile: './META-INF/vault/properties.xml',
+  jcrRootDir: 'jcr_root',
+  pkgService: '/crx/packmgr/service.jsp',
+  username: 'admin',
+  password: 'admin',
+  installPkg: true,
+  pkgFilePattern: '*.zip',
+  cwd: process.cwd()
 };
 
 /**
  * @namespace
  */
 const aemPkg = {
-	/**
-	 * @private
-	 * @param {String} pkgPropFile Path for AEM package properties.xml file
-	 * @returns {Promise}
-	 */
-	async getPkgNameFromMeta(pkgPropFile) {
-		let pkgPropsXml;
-		try {
-			pkgPropsXml = await fsAsync.readFile(path.resolve(pkgPropFile), 'utf-8');
-		} catch (err) {
-			let errMsg;
-			if (err.code === 'ENOENT') {
-				errMsg = `Error: Not a AEM package directory: ${err.path}`;
-			} else {
-				errMsg = err;
-			}
-			throw new Error(errMsg);
-		}
-		const pkgProps = await xml2jsAsync.parseString(pkgPropsXml);
+  /**
+   * @private
+   * @param {String} pkgPropFile Path for AEM package properties.xml file
+   * @returns {Promise}
+   */
+  async getPkgNameFromMeta(pkgPropFile) {
+    let pkgPropsXml;
+    try {
+      pkgPropsXml = await fsAsync.readFile(path.resolve(pkgPropFile), 'utf-8');
+    } catch (err) {
+      let errMsg;
+      if (err.code === 'ENOENT') {
+        errMsg = `Error: Not a AEM package directory: ${err.path}`;
+      } else {
+        errMsg = err;
+      }
+      throw new Error(errMsg);
+    }
+    const pkgProps = await xml2jsAsync.parseString(pkgPropsXml);
 
-		const filteredNameNode = pkgProps.properties.entry.filter(
-			entry => entry.$.key === 'name'
-		);
+    const filteredNameNode = pkgProps.properties.entry.filter(
+      entry => entry.$.key === 'name'
+    );
 
-		return filteredNameNode[0]._;
-	},
+    return filteredNameNode[0]._;
+  },
 
-	/**
-	 * @private
-	 * @param {Object} opts Options to override default options
-	 * @returns {Promise}
-	 */
-	getOptions(opts) {
-		const options = Object.assign({}, defaultOptions, opts);
-		const { host, port, protocol, pkgService, username, password } = options;
+  /**
+   * @private
+   * @param {Object} opts Options to override default options
+   * @returns {Promise}
+   */
+  getOptions(opts) {
+    const options = Object.assign({}, defaultOptions, opts);
+    const { host, port, protocol, pkgService, username, password } = options;
 
-		options.pkgServiceUrl = `${protocol}://${host}:${port}${pkgService}`;
-		options.auth = `${username}:${password}`;
-		return options;
-	},
+    options.pkgServiceUrl = `${protocol}://${host}:${port}${pkgService}`;
+    options.auth = `${username}:${password}`;
+    return options;
+  },
 
-	/**
-	 *
-	 * @param {String} pkgName Name of the package to build without extension
-	 * @param {Object} [opts=defaultOptions] Options to override default options
-	 * @returns {Promise}
-	 * @example
-	 * await aemPkg.buildRemotePkg('my-awesome-aem-website');
-	 */
-	async buildRemotePkg(pkgName, opts) {
-		const { pkgServiceUrl, auth } = this.getOptions(opts);
+  /**
+   *
+   * @param {String} pkgName Name of the package to build without extension
+   * @param {Object} [opts=defaultOptions] Options to override default options
+   * @returns {Promise}
+   * @example
+   * await aemPkg.buildRemotePkg('my-awesome-aem-website');
+   */
+  async buildRemotePkg(pkgName, opts) {
+    const { pkgServiceUrl, auth } = this.getOptions(opts);
 
-		const pkgBuildUrl = `${pkgServiceUrl}?cmd=build&name=${pkgName}`;
-		const buildPkg = await got.post(pkgBuildUrl, {
-			auth
-		});
+    const pkgBuildUrl = `${pkgServiceUrl}?cmd=build&name=${pkgName}`;
+    const buildPkg = await got.post(pkgBuildUrl, {
+      auth
+    });
 
-		return buildPkg;
-	},
+    return buildPkg;
+  },
 
-	/**
-	 * @private
-	 * @param {String} packageName Name of the package without extension
-	 * @param {Object} [opts=defaultOptions] Options to override default options
-	 * @returns {Promise}
-	 */
-	getRemotePkgStream(packageName, opts) {
-		const { pkgServiceUrl, auth } = this.getOptions(opts);
+  /**
+   * @private
+   * @param {String} packageName Name of the package without extension
+   * @param {Object} [opts=defaultOptions] Options to override default options
+   * @returns {Promise}
+   */
+  getRemotePkgStream(packageName, opts) {
+    const { pkgServiceUrl, auth } = this.getOptions(opts);
 
-		const pkgFileUrl = `${pkgServiceUrl}?name=${packageName}`;
-		const fileStream = got.stream(pkgFileUrl, {
-			auth
-		});
+    const pkgFileUrl = `${pkgServiceUrl}?name=${packageName}`;
+    const fileStream = got.stream(pkgFileUrl, {
+      auth
+    });
 
-		return fileStream;
-	},
+    return fileStream;
+  },
 
-	/**
-	 * @private
-	 * @param {String} pkgName Name of the package without extension
-	 * @param {Object} [opts=defaultOptions] Options to override default options
-	 * @returns {Promise}
-	 */
-	async getRemotePkgBuffer(pkgName, opts) {
-		await this.buildRemotePkg(pkgName, opts);
-		const fileStream = this.getRemotePkgStream(pkgName, opts);
+  /**
+   * @private
+   * @param {String} pkgName Name of the package without extension
+   * @param {Object} [opts=defaultOptions] Options to override default options
+   * @returns {Promise}
+   */
+  async getRemotePkgBuffer(pkgName, opts) {
+    await this.buildRemotePkg(pkgName, opts);
+    const fileStream = this.getRemotePkgStream(pkgName, opts);
 
-		return await getStream.buffer(fileStream);
-	},
+    return await getStream.buffer(fileStream);
+  },
 
-	/**
-	 * @private
-	 * @param {String} zipFile Path of the zip file to extract
-	 * @param {String} extractPath Location path to extract the file
-	 * @param {Object} [opts=defaultOptions] Options to override default options
-	 * @returns {Promise}
-	 */
-	async extractZip(zipFile, extractPath, opts) {
-		const { extractMetaDir, jcrRootDir } = this.getOptions(opts);
-		const zipExtractPath = extractPath || './';
+  /**
+   * @private
+   * @param {String} zipFile Path of the zip file to extract
+   * @param {String} extractPath Location path to extract the file
+   * @param {Object} [opts=defaultOptions] Options to override default options
+   * @returns {Promise}
+   */
+  async extractZip(zipFile, extractPath, opts) {
+    const { extractMetaDir, jcrRootDir } = this.getOptions(opts);
+    const zipExtractPath = extractPath || './';
 
-		const zip = new AdmZip(zipFile);
-		const zipEntries = zip.getEntries();
-		const extractFiles = zipEntries.filter(
-			({ entryName }) =>
-				extractMetaDir || entryName.split(/\//)[0] === jcrRootDir
-		);
+    const zip = new AdmZip(zipFile);
+    const zipEntries = zip.getEntries();
+    const extractFiles = zipEntries.filter(
+      ({ entryName }) =>
+        extractMetaDir || entryName.split(/\//)[0] === jcrRootDir
+    );
 
-		const createPaths = extractFiles
-			.filter(({ entryName }) => /\/$/.test(entryName))
-			.map(({ entryName }) => {
-				const entryPath = path.join(zipExtractPath, entryName);
-				return pathExists(entryPath).then(
-					exists => exists || makeDir(entryPath)
-				);
-			});
+    const createPaths = extractFiles
+      .filter(({ entryName }) => /\/$/.test(entryName))
+      .map(({ entryName }) => {
+        const entryPath = path.join(zipExtractPath, entryName);
+        return pathExists(entryPath).then(
+          exists => exists || makeDir(entryPath)
+        );
+      });
 
-		await Promise.all(createPaths);
+    await Promise.all(createPaths);
 
-		const createFiles = extractFiles
-			.filter(({ entryName }) => !/\/$/.test(entryName))
-			.map(({ entryName }) => {
-				return fsAsync.writeFile(
-					path.resolve(path.join(zipExtractPath, entryName)),
-					zip.readFile(entryName)
-				);
-			});
+    const createFiles = extractFiles
+      .filter(({ entryName }) => !/\/$/.test(entryName))
+      .map(({ entryName }) => {
+        return fsAsync.writeFile(
+          path.resolve(path.join(zipExtractPath, entryName)),
+          zip.readFile(entryName)
+        );
+      });
 
-		await Promise.all(createFiles);
-	},
+    await Promise.all(createFiles);
+  },
 
-	/**
-	 *
-	 * @param {String} src Path of the package directory where need to pull the package.
-	 * @param {Object} [opts=defaultOptions] Options to override default options
-	 * @returns {Promise}
-	 * @example
-	 * await aemPkg.pull('./my-aem-pkg-dir/my-aem-website');
-	 */
-	async pull(src, opts) {
-		const { pkgPropFile, cwd } = this.getOptions(opts);
-		const packageName = await this.getPkgNameFromMeta(pkgPropFile);
-		const pkgSrc = path.resolve(cwd, src);
+  /**
+   *
+   * @param {String} src Path of the package directory where need to pull the package.
+   * @param {Object} [opts=defaultOptions] Options to override default options
+   * @returns {Promise}
+   * @example
+   * await aemPkg.pull('./my-aem-pkg-dir/my-aem-website');
+   */
+  async pull(src, opts) {
+    const { pkgPropFile, cwd } = this.getOptions(opts);
+    const packageName = await this.getPkgNameFromMeta(pkgPropFile);
+    const pkgSrc = path.resolve(cwd, src);
 
-		const zipBuffer = await this.getRemotePkgBuffer(packageName, opts);
-		await this.extractZip(zipBuffer, pkgSrc, opts);
-	},
+    const zipBuffer = await this.getRemotePkgBuffer(packageName, opts);
+    await this.extractZip(zipBuffer, pkgSrc, opts);
+  },
 
-	/**
-	 *
-	 * @param {String} src Path of the package directory which you need to push to the server.
-	 * @param {Object} [opts=defaultOptions] Options to override default options
-	 * @returns {Promise}
-	 * @example
-	 * await aemPkg.push('./my-aem-pkg-dir/my-aem-website');
-	 */
-	async push(src, opts) {
-		const { pkgPropFile, cwd } = this.getOptions(opts);
-		const packageName = await this.getPkgNameFromMeta(pkgPropFile);
-		const pkgSrc = path.resolve(cwd, src);
-		opts.cwd = pkgSrc;
+  /**
+   *
+   * @param {String} src Path of the package directory which you need to push to the server.
+   * @param {Object} [opts=defaultOptions] Options to override default options
+   * @returns {Promise}
+   * @example
+   * await aemPkg.push('./my-aem-pkg-dir/my-aem-website');
+   */
+  async push(src, opts) {
+    const { pkgPropFile, cwd } = this.getOptions(opts);
+    const packageName = await this.getPkgNameFromMeta(pkgPropFile);
+    const pkgSrc = path.resolve(cwd, src);
+    opts.cwd = pkgSrc;
 
-		log('Packaging...');
-		const zip = new AdmZip();
-		zip.addLocalFolder(pkgSrc);
-		const buffer = await zip.toBuffer();
+    log('Packaging...');
+    const zip = new AdmZip();
+    zip.addLocalFolder(pkgSrc);
+    const buffer = await zip.toBuffer();
 
-		log('Uploading...');
-		const name = `${packageName}.zip`;
-		await this.uploadPkg({buffer, name}, opts);
-	},
+    log('Uploading...');
+    const name = `${packageName}.zip`;
+    await this.uploadPkg({ buffer, name }, opts);
+  },
 
-	/**
-	 *
-	 * @param {String} pkgName Name of the package without extension
-	 * @param {String} cloneDirPath Path of directory to clone the package
-	 * @param {Object} [opts=defaultOptions] Options to override default options
-	 * @returns {Promise}
-	 * @example
-	 * await aemPkg.clone('my-aem-website', './my-aem-pkg-dir/');
-	 */
-	async clone(pkgName, cloneDirPath, opts) {
-		const options = this.getOptions(opts);
-		const { cwd } = options;
-		options.cwd = path.resolve(cwd, cloneDirPath);
-		const pkgExtractPath = path.resolve(options.cwd, pkgName);
+  /**
+   *
+   * @param {String} pkgName Name of the package without extension
+   * @param {String} cloneDirPath Path of directory to clone the package
+   * @param {Object} [opts=defaultOptions] Options to override default options
+   * @returns {Promise}
+   * @example
+   * await aemPkg.clone('my-aem-website', './my-aem-pkg-dir/');
+   */
+  async clone(pkgName, cloneDirPath, opts) {
+    const options = this.getOptions(opts);
+    const { cwd } = options;
+    options.cwd = path.resolve(cwd, cloneDirPath);
+    const pkgExtractPath = path.resolve(options.cwd, pkgName);
 
-		const dirExist = await pathExists(pkgExtractPath);
+    const dirExist = await pathExists(pkgExtractPath);
 
-		if (dirExist) {
-			return log('Error: Directory already exist');
-		}
+    if (dirExist) {
+      return log('Error: Directory already exist');
+    }
 
-		log('Cloning package...');
-		options.extractMetaDir = true;
-		await makeDir(pkgExtractPath);
-		const zipBuffer = await this.getRemotePkgBuffer(pkgName, options);
-		await this.extractZip(zipBuffer, pkgExtractPath, options);
-	},
+    log('Cloning package...');
+    options.extractMetaDir = true;
+    await makeDir(pkgExtractPath);
+    const zipBuffer = await this.getRemotePkgBuffer(pkgName, options);
+    await this.extractZip(zipBuffer, pkgExtractPath, options);
+  },
 
-	/**
-	 *
-	 * @param {(String|Object)} file path or object with buffer and filename properties
-	 * @param {Object} [opts=defaultOptions] Options to override default options
-	 * @returns {Promise}
-	 * @example
-	 * await aemPkg.uploadPkg('./my-aem-pkgs/my-website.zip');
-	 * await aemPkg.uploadPkg({buffer:zipFileBuffer, name:'my-website'});
-	 */
-	async uploadPkg(file, opts) {
-		const { pkgServiceUrl, auth, installPkg } = this.getOptions(opts);
-		const body = new FormData();
+  /**
+   * @private
+   * @param {String} msg Message before progress
+   * @param {Object} object Got Progress object
+   */
+  showProgress(msg, { percent, total, transferred }) {
+    let progressMsg = '';
+    if (total) {
+      progressMsg = `${prettyBytes(transferred)}/${prettyBytes(
+        total
+      )} | ${Math.round(percent * 100)}%`;
+    } else if (transferred) {
+      progressMsg = `${prettyBytes(transferred)}`;
+    }
+    logUpdate(`${msg} | ${progressMsg}`);
+  },
+  /**
+   *
+   * @param {(String|Object)} file path or object with buffer and filename properties
+   * @param {Object} [opts=defaultOptions] Options to override default options
+   * @returns {Promise}
+   * @example
+   * await aemPkg.uploadPkg('./my-aem-pkgs/my-website.zip');
+   * await aemPkg.uploadPkg({buffer:zipFileBuffer, name:'my-website'});
+   */
+  async uploadPkg(file, opts) {
+    const { pkgServiceUrl, auth, installPkg } = this.getOptions(opts);
+    const body = new FormData();
 
-		if (typeof file === 'string') {
-			body.append('file', fs.createReadStream(path.resolve(opts.cwd, file)));
-		} else {
-			let filename = file.name;
-			body.append('file', file.buffer, { filename });
-			body.append('name', filename);
-		}
+    if (typeof file === 'string') {
+      body.append('file', fs.createReadStream(path.resolve(opts.cwd, file)));
+    } else {
+      let filename = file.name;
+      body.append('file', file.buffer, { filename });
+      body.append('name', filename);
+    }
 
-		body.append('force', 'true');
-		body.append('install', installPkg ? 'true' : 'false');
+    body.append('force', 'true');
+    body.append('install', installPkg ? 'true' : 'false');
 
-		await got.post(pkgServiceUrl, {
-			auth,
-			body
-		});
-	},
+    let uploadFilename = typeof file === 'string' ? file : file.name;
+    uploadFilename = path.basename(uploadFilename);
 
-	/**
-	 *
-	 * @param {Array} pkgs array of package file paths
-	 * @param {Object} [opts=defaultOptions] Options to override default options
-	 * @returns {Promise}
-	 * @example
-	 * await aemPkg.uploadPkgs(['./my-aem-pkgs/my-first-website.zip', './my-aem-pkgs/my-second-website.zip']);
-	 */
-	async uploadPkgs(pkgs, opts) {
-		const options = this.getOptions(opts);
+    await got
+      .post(pkgServiceUrl, {
+        auth,
+        body
+      })
+      .on('uploadProgress', progress => {
+        this.showProgress(`Uploading ${uploadFilename}`, progress);
+        if (progress.percent === 1) {
+          logUpdate.done();
+          logUpdate('Installing...');
+          logUpdate.done();
+        }
+      });
+  },
 
-		await pkgs.reduce((pkgsUpload, pkg) => {
-			const file = path.resolve(options.cwd, pkg);
-			return pkgsUpload.then(() => this.uploadPkg(file, opts));
-		}, Promise.resolve());
-	},
+  /**
+   *
+   * @param {Array} pkgs array of package file paths
+   * @param {Object} [opts=defaultOptions] Options to override default options
+   * @returns {Promise}
+   * @example
+   * await aemPkg.uploadPkgs(['./my-aem-pkgs/my-first-website.zip', './my-aem-pkgs/my-second-website.zip']);
+   */
+  async uploadPkgs(pkgs, opts) {
+    const options = this.getOptions(opts);
 
-	/**
-	 *
-	 * @param {String} pkgsDir Directory of all package zip
-	 * @param {Object} [opts=defaultOptions] Options to override default options
-	 * @returns {Promise}
-	 * @example
-	 * // Upload all packages from this directory
-	 * await aemPkg.uploadPkgsFromDir('./my-aem-pkgs/');
-	 */
-	async uploadPkgsFromDir(pkgsDir, opts) {
-		const options = this.getOptions(opts);
-		const cwd = path.resolve(options.cwd, pkgsDir);
-		const pkgs = await globby(options.pkgFilePattern, {
-			cwd
-		});
+    await pkgs.reduce((pkgsUpload, pkg) => {
+      const file = path.resolve(options.cwd, pkg);
+      return pkgsUpload.then(() => this.uploadPkg(file, opts));
+    }, Promise.resolve());
+  },
 
-		if (!pkgs.length) {
-			throw new Error(`Nothing found on ${cwd}`);
-		}
+  /**
+   *
+   * @param {String} pkgsDir Directory of all package zip
+   * @param {Object} [opts=defaultOptions] Options to override default options
+   * @returns {Promise}
+   * @example
+   * // Upload all packages from this directory
+   * await aemPkg.uploadPkgsFromDir('./my-aem-pkgs/');
+   */
+  async uploadPkgsFromDir(pkgsDir, opts) {
+    const options = this.getOptions(opts);
+    const cwd = path.resolve(options.cwd, pkgsDir);
+    const pkgs = await globby(options.pkgFilePattern, {
+      cwd
+    });
 
-		await this.uploadPkgs(pkgs, { ...options, cwd });
-	},
+    if (!pkgs.length) {
+      throw new Error(`Nothing found on ${cwd}`);
+    }
 
-	/**
-	 *
-	 * @param {String} zipFile Path of zip file which contains many packages. All will be uploaded individually.
-	 * @param {Object} [opts=defaultOptions] Options to override default options
-	 * @returns {Promise}
-	 * @example
-	 * // Upload packages from zip file which contains many AEM packages
-	 * await aemPkg.uploadPkgsFromZip('./aem-pkgs/my-aem-pkgs.zip');
-	 */
-	async uploadPkgsFromZip(zipFile, opts) {
-		const options = this.getOptions(opts);
-		const { cwd } = options;
+    await this.uploadPkgs(pkgs, { ...options, cwd });
+  },
 
-		const zip = new AdmZip(path.resolve(cwd, zipFile));
-		const zipEntries = zip.getEntries();
+  /**
+   *
+   * @param {String} zipFile Path of zip file which contains many packages. All will be uploaded individually.
+   * @param {Object} [opts=defaultOptions] Options to override default options
+   * @returns {Promise}
+   * @example
+   * // Upload packages from zip file which contains many AEM packages
+   * await aemPkg.uploadPkgsFromZip('./aem-pkgs/my-aem-pkgs.zip');
+   */
+  async uploadPkgsFromZip(zipFile, opts) {
+    const options = this.getOptions(opts);
+    const { cwd } = options;
 
-		const uploadPkgs = zipEntries
-			.filter(({ entryName }) => {
-				// filter directory and path.
-				return !/\/$/.test(entryName) && !/\//.test(entryName);
-			})
-			.map(({ entryName }) => {
-				return this.uploadPkg(
-					{
-						buffer: zip.readFile(entryName),
-						name: entryName
-					},
-					options
-				);
-			});
+    const zip = new AdmZip(path.resolve(cwd, zipFile));
+    const zipEntries = zip.getEntries();
+    const uploadPkgs = zipEntries
+      .filter(({ entryName }) => {
+        // filter directory and path.
+        return !/\/$/.test(entryName) && !/\//.test(entryName);
+      })
+      .map(({ entryName }) => {
+        return this.uploadPkg(
+          {
+            buffer: zip.readFile(entryName),
+            name: entryName
+          },
+          options
+        );
+      });
 
-		await Promise.all(uploadPkgs);
-	},
+    await Promise.all(uploadPkgs);
+  },
 
-	/**
-	 *
-	 * @param {String} zipUrl URL of zip file which contains AEM packages
-	 * @param {Object} [opts=defaultOptions] Options to override default options
-	 * @returns {Promise}
-	 * @example
-	 * // Upload packages from zip file URL which contain many AEM packages
-	 * await aemPkg.uploadPkgsFromZip('https://www.example.com/packages/my-aem-pkgs.zip');
-	 */
-	async uploadPkgsFromZipUrl(zipUrl, opts) {
-		const options = this.getOptions(opts);
-		const tmpDir = await tmpPromise.dir({ unsafeCleanup: true });
-		const pkgFileName = 'aem-pkgs.zip';
-		const writePkgFile = path.resolve(path.join(tmpDir.path, pkgFileName));
+  /**
+   *
+   * @param {String} zipUrl URL of zip file which contains AEM packages
+   * @param {Object} [opts=defaultOptions] Options to override default options
+   * @returns {Promise}
+   * @example
+   * // Upload packages from zip file URL which contain many AEM packages
+   * await aemPkg.uploadPkgsFromZip('https://www.example.com/packages/my-aem-pkgs.zip');
+   */
+  async uploadPkgsFromZipUrl(zipUrl, opts) {
+    const options = this.getOptions(opts);
+    const tmpDir = await tmpPromise.dir({ unsafeCleanup: true });
+    const pkgFileName = 'aem-pkgs.zip';
+    const writePkgFile = path.resolve(path.join(tmpDir.path, pkgFileName));
 
-		await new Promise((resolve, reject) => {
-			got
-				.stream(zipUrl)
-				.on('end', () => {
-					this.uploadPkgsFromZip(writePkgFile, options)
-						.then(resolve)
-						.catch(reject);
-				})
-				.on('error', reject)
-				.pipe(fs.createWriteStream(writePkgFile));
-		});
+    await new Promise((resolve, reject) => {
+      got
+        .stream(zipUrl)
+        .on('end', () => {
+          this.uploadPkgsFromZip(writePkgFile, options)
+            .then(resolve)
+            .catch(reject);
+        })
+        .on('downloadProgress', progress => {
+          this.showProgress(`Downloading ${path.basename(zipUrl)}`, progress);
+        })
+        .on('error', reject)
+        .pipe(fs.createWriteStream(writePkgFile));
+    });
 
-		await tmpDir.cleanup();
-	}
+    await tmpDir.cleanup();
+  }
 };
 
 module.exports = exports = aemPkg;
