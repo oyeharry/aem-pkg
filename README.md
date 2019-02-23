@@ -66,10 +66,10 @@ await aemPkg.uploadPkgsFromDir('./my-aem-pkgs/');
 
 // With options to override defaultOptions
 await aemPkg.uploadPkgsFromDir('./my-aem-pkgs/', {
-	port: 80,
-	host: 'www.mywebsite.com',
-	username: 'admin',
-	password: 'admin'
+  port: 80,
+  host: 'www.mywebsite.com',
+  username: 'admin',
+  password: 'admin'
 });
 ```
 
@@ -186,8 +186,8 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 
 ```javascript
 await aemPkg.uploadPkgs([
-	'./my-aem-pkgs/my-first-website.zip',
-	'./my-aem-pkgs/my-second-website.zip'
+  './my-aem-pkgs/my-first-website.zip',
+  './my-aem-pkgs/my-second-website.zip'
 ]);
 ```
 
@@ -237,7 +237,7 @@ Returns **[Promise](https://developer.mozilla.org/docs/Web/JavaScript/Reference/
 ```javascript
 // Upload packages from zip file URL which contain many AEM packages
 await aemPkg.uploadPkgsFromZip(
-	'https://www.example.com/packages/my-aem-pkgs.zip'
+  'https://www.example.com/packages/my-aem-pkgs.zip'
 );
 ```
 

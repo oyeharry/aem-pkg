@@ -1,14 +1,14 @@
 {
-	"extends": "eslint:recommended",
-	"parserOptions": {
-		"ecmaVersion": 2018,
-		"sourceType": "module"
-	},
-	"env": {
-		"browser": true,
-		"node": true
-	},
-	"globals": {
-		"Promise": false
-	}
+    "extends": "eslint:recommended",
+    "parserOptions": {
+        "ecmaVersion": 2018,
+        "sourceType": "module"
+    },
+    "env": {
+        "browser": true,
+        "node": true
+    },
+    "globals": {
+        "Promise": false
+    }
 }
