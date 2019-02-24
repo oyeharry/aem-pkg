@@ -12,6 +12,7 @@ const globby = require('globby');
 const tmpPromise = require('tmp-promise');
 const prettyBytes = require('pretty-bytes');
 const logUpdate = require('log-update');
+const isUrl = require('is-url');
 
 const xml2jsAsync = pify(xml2js);
 const fsAsync = pify(fs);
@@ -270,19 +271,29 @@ const aemPkg = {
   },
   /**
    *
-   * @param {(String|Object)} file path or object with buffer and filename properties
+   * @param {(String|Object)} file path or file url or object with buffer and filename properties
    * @param {Object} [opts=defaultOptions] Options to override default options
    * @returns {Promise}
    * @example
    * await aemPkg.uploadPkg('./my-aem-pkgs/my-website.zip');
+   * await aemPkg.uploadPkg('https://www.mywebsite.com/my-aem-pkgs/my-website.zip');
    * await aemPkg.uploadPkg({buffer:zipFileBuffer, name:'my-website'});
    */
   async uploadPkg(file, opts) {
     const { pkgServiceUrl, auth, installPkg } = this.getOptions(opts);
     const body = new FormData();
+    let downloadedTempDir;
 
     if (typeof file === 'string') {
-      body.append('file', fs.createReadStream(path.resolve(opts.cwd, file)));
+      let filePath;
+      if (isUrl(file)) {
+        const { writePkgFile, tmpDir } = await this.downloadZipFile(file);
+        downloadedTempDir = tmpDir;
+        filePath = writePkgFile;
+      } else {
+        filePath = path.resolve(opts.cwd, file);
+      }
+      body.append('file', fs.createReadStream(filePath));
     } else {
       let filename = file.name;
       body.append('file', file.buffer, { filename });
@@ -308,6 +319,10 @@ const aemPkg = {
           logUpdate.done();
         }
       });
+
+    if (downloadedTempDir) {
+      await downloadedTempDir.cleanup();
+    }
   },
 
   /**
@@ -316,14 +331,11 @@ const aemPkg = {
    * @param {Object} [opts=defaultOptions] Options to override default options
    * @returns {Promise}
    * @example
-   * await aemPkg.uploadPkgs(['./my-aem-pkgs/my-first-website.zip', './my-aem-pkgs/my-second-website.zip']);
+   * await aemPkg.uploadPkgs(['./my-aem-pkgs/my-first-website.zip', './my-aem-pkgs/my-second-website.zip', 'https://www.mywebsite.com/my-aem-pkgs/my-second-website.zip']);
    */
   async uploadPkgs(pkgs, opts) {
-    const options = this.getOptions(opts);
-
-    await pkgs.reduce((pkgsUpload, pkg) => {
-      const file = path.resolve(options.cwd, pkg);
-      return pkgsUpload.then(() => this.uploadPkg(file, opts));
+    await pkgs.reduce((p, pkg) => {
+      return p.then(() => this.uploadPkg(pkg, opts));
     }, Promise.resolve());
   },
 
@@ -384,6 +396,30 @@ const aemPkg = {
   },
 
   /**
+   * @private
+   * @param {String} zipUrl URL of the zip file
+   * @returns {Promise} Resolve to {writePkgFile, tmpDir} object
+   */
+  async downloadZipFile(zipUrl) {
+    const tmpDir = await tmpPromise.dir({ unsafeCleanup: true });
+    const pkgFileName = 'aem-pkg-download-file.zip';
+    const writePkgFile = path.resolve(path.join(tmpDir.path, pkgFileName));
+
+    await new Promise((resolve, reject) => {
+      got
+        .stream(zipUrl)
+        .on('end', resolve)
+        .on('downloadProgress', progress => {
+          this.showProgress(`Downloading ${path.basename(zipUrl)}`, progress);
+        })
+        .on('error', reject)
+        .pipe(fs.createWriteStream(writePkgFile));
+    });
+
+    return { writePkgFile, tmpDir };
+  },
+
+  /**
    *
    * @param {String} zipUrl URL of zip file which contains AEM packages
    * @param {Object} [opts=defaultOptions] Options to override default options
@@ -394,25 +430,9 @@ const aemPkg = {
    */
   async uploadPkgsFromZipUrl(zipUrl, opts) {
     const options = this.getOptions(opts);
-    const tmpDir = await tmpPromise.dir({ unsafeCleanup: true });
-    const pkgFileName = 'aem-pkgs.zip';
-    const writePkgFile = path.resolve(path.join(tmpDir.path, pkgFileName));
 
-    await new Promise((resolve, reject) => {
-      got
-        .stream(zipUrl)
-        .on('end', () => {
-          this.uploadPkgsFromZip(writePkgFile, options)
-            .then(resolve)
-            .catch(reject);
-        })
-        .on('downloadProgress', progress => {
-          this.showProgress(`Downloading ${path.basename(zipUrl)}`, progress);
-        })
-        .on('error', reject)
-        .pipe(fs.createWriteStream(writePkgFile));
-    });
-
+    const { writePkgFile, tmpDir } = await this.downloadZipFile(zipUrl);
+    await this.uploadPkgsFromZip(writePkgFile, options);
     await tmpDir.cleanup();
   }
 };

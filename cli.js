@@ -33,6 +33,10 @@ const cli = meow(
     $ aem-pkg up
     Upload 'my-aem-pacakge.zip' package from current directory
     $ aem-pkg up my-aem-pacakge.zip
+    Download and Upload 'my-aem-pacakge.zip' package
+    $ aem-pkg up https://www.mywebsite.com/packages/my-aem-pacakge.zip
+    Upload multiple packages serially from current directory and server
+    $ aem-pkg up my-aem-pacakge1.zip my-aem-pacakge2.zip https://www.mywebsite.com/packages/my-aem-pacakge3.zip
     Extract and upload packages from 'pacakges-zip-file.zip' file. This file should have aem packages.
     $ aem-pkg upzip pacakges-zip-file.zip
     Download, extract and upload packages from URL 'https://www.mypackages.com/pacakges-zip-file.zip' file. This file should have aem packages.
