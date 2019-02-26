@@ -6,9 +6,11 @@
     },
     "env": {
         "browser": true,
-        "node": true
+        "node": true,
+        "jest/globals": true
     },
     "globals": {
         "Promise": false
-    }
+    },
+    "plugins": ["jest"]
 }

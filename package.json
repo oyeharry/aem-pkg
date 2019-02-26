@@ -7,7 +7,7 @@
         "aem-pkg": "cli.js"
     },
     "scripts": {
-        "test": "ava",
+        "test": "jest test.js",
         "doc:api": "documentation readme index.js --section=API --markdown-toc=false"
     },
     "engines": {
