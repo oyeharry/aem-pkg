@@ -1,5 +1,3 @@
-jest.mock('fs');
-
 const aemPkg = require('.');
 const got = require('got');
 const getStream = require('get-stream');
@@ -20,14 +18,12 @@ const isUrl = require('is-url');
 const xml2jsAsync = pify(xml2js);
 const fsAsync = pify(fs);
 
-// jest.mock('fs');
-
-// console.log(fs);
+jest.mock('fs');
 
 test('aemPkg.getPkgNameFromMeta', async () => {
   const expectedComponentName = 'awesome-aem-component';
-  fs.readFile.mockImplementation((url, code, cb) => {
-    cb(
+  fs.readFile.mockImplementation((...rest) => {
+    rest[rest.length - 1](
       null,
       `
     <?xml version="1.0" encoding="utf-8" standalone="no"?>
