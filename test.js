@@ -117,7 +117,6 @@ it('should return stream on aemPkg.getRemotePkgBuffer', async () => {
 
 it('should fetch aem package and extract on aemPkg.pull', async () => {
   const { pkgName, opts } = getOptionsFixture();
-  const fileStream = { stream: '' };
   const pkgBuffer = { buffer: '' };
   const src = './awesome-dir';
   const pkgSrc = path.resolve('./', src);
@@ -134,7 +133,6 @@ it('should fetch aem package and extract on aemPkg.pull', async () => {
 it('should upload aem packages files on aemPkg.push', async () => {
   const { pkgName, opts } = getOptionsFixture();
   const pkgNameZip = `${pkgName}.zip`;
-  const fileStream = { stream: '' };
   const buffer = { buffer: '' };
   const src = './awesome-dir';
   const pkgSrc = path.resolve('./', src);
