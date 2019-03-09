@@ -105,7 +105,7 @@ const aemPkg = {
   async buildRemotePkg(pkgName, opts) {
     const { pkgServiceUrl, auth } = this.getOptions(opts);
 
-    const pkgBuildUrl = `${pkgServiceUrl}?cmd=build&name=${pkgName}`;
+    const pkgBuildUrl = `${pkgServiceUrl}?name=${pkgName}&cmd=build`;
     const buildPkg = await got.post(pkgBuildUrl, {
       auth
     });

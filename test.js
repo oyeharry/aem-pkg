@@ -4,19 +4,6 @@ const getStream = require('get-stream');
 const fs = require('fs');
 const path = require('path');
 const AdmZip = require('adm-zip');
-const xml2js = require('xml2js');
-const pify = require('pify');
-const makeDir = require('make-dir');
-const pathExists = require('path-exists');
-const FormData = require('form-data');
-const globby = require('globby');
-const tmpPromise = require('tmp-promise');
-const prettyBytes = require('pretty-bytes');
-const logUpdate = require('log-update');
-const isUrl = require('is-url');
-
-const xml2jsAsync = pify(xml2js);
-const fsAsync = pify(fs);
 
 jest.mock('fs');
 jest.mock('got');

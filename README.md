@@ -1,4 +1,4 @@
-# aem-pkg
+# aem-pkg [![Build Status](https://travis-ci.org/oyeharry/aem-pkg.svg?branch=master)](https://travis-ci.org/oyeharry/aem-pkg)
 
 ## The Problem
 
@@ -7,7 +7,7 @@ Sometimes you just need to push, pull and sync AEM package from local file syste
 ## This Solution
 
 - Provide simple command to upload and download packages from AEM remote server
-- Provide git like commands to keep your local revisioned-package directory sync with your remote AEM server.
+- Provide git like commands to keep your local package directory sync with your remote AEM server.
 - It uses the package manager service API to do all the operations.
 
 ## Install
