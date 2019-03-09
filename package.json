@@ -11,7 +11,7 @@
         "doc:api": "documentation readme index.js --section=API --markdown-toc=false"
     },
     "engines": {
-        "node": ">=4"
+        "node": ">=8.6"
     },
     "repository": {
         "type": "git",
