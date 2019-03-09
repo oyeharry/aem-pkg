@@ -7,11 +7,11 @@
         "aem-pkg": "cli.js"
     },
     "scripts": {
-        "test": "ava",
+        "test": "jest test.js",
         "doc:api": "documentation readme index.js --section=API --markdown-toc=false"
     },
     "engines": {
-        "node": ">=4"
+        "node": ">=8.6"
     },
     "repository": {
         "type": "git",
@@ -48,7 +48,7 @@
         "yauzl": "^2.10.0"
     },
     "devDependencies": {
-        "ava": "^1.0.0-beta.3",
+        "jest": "^24.1.0",
         "tempy": "^0.2.1"
     }
 }
